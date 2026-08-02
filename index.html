@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🚀 Paste2App Web</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+*{margin:0;box-sizing:border-box}
+body{font-family:'Segoe UI','Hiragino Sans',sans-serif;background:#14161c;color:#dde;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#1d212b;border-bottom:1px solid #2a2f3a}
+header b{color:#7fd4ff;font-size:16px}
+header span{font-size:11px;color:#667}
+.btn{padding:7px 14px;border:none;border-radius:8px;background:#2f3542;color:#cdd;cursor:pointer;font-size:13px}
+.btn:hover{background:#3a4150}
+.btn.blue{background:#3b82f6;color:#fff}
+.btn.red{background:#5e2f35}
+#layout{flex:1;display:flex;overflow:hidden}
+/* サイドバー */
+#side{width:230px;background:#181b22;border-right:1px solid #2a2f3a;display:flex;flex-direction:column}
+#side h3{font-size:12px;color:#889;padding:12px 14px 6px}
+#plist{flex:1;overflow-y:auto}
+.pitem{padding:10px 14px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.pitem:hover{background:#20242e}
+.pitem.sel{background:#252b38;color:#7fd4ff}
+.pitem .del{opacity:.4;cursor:pointer}
+.pitem .del:hover{opacity:1;color:#ff7b7b}
+#storage{font-size:10px;color:#556;padding:8px 14px;border-top:1px solid #2a2f3a}
+/* メイン */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#tabs{display:flex;gap:4px;padding:8px 12px 0;background:#1a1e26}
+.tab{padding:8px 20px;border:none;border-radius:8px 8px 0 0;background:#20242e;color:#99a;cursor:pointer;font-size:13px}
+.tab.on{background:#2f3542;color:#fff;font-weight:bold}
+.pane{flex:1;display:none;overflow:hidden}
+.pane.on{display:flex}
+/* 貼り付け */
+#pastePane{flex-direction:column;padding:16px;gap:10px}
+textarea{flex:1;background:#0d0f13;color:#cde;border:1px solid #333;border-radius:10px;padding:14px;font-family:Consolas,monospace;font-size:13px;resize:none;outline:none}
+/* プレビュー */
+iframe{width:100%;height:100%;border:none;background:#fff}
+/* ファイル */
+#filePane{display:none}
+#filePane.on{display:flex}
+#flist{width:230px;border-right:1px solid #2a2f3a;overflow-y:auto;background:#181b22}
+#flist div{padding:9px 14px;cursor:pointer;font-size:12px;font-family:Consolas,monospace}
+#flist div:hover{background:#20242e}
+#flist div.sel{background:#252b38;color:#7fd4ff}
+#fbody{flex:1;padding:14px;overflow:auto;font-family:Consolas,monospace;font-size:13px;color:#cdd;white-space:pre;background:#0d0f13}
+#empty{flex:1;display:flex;align-items:center;justify-content:center;color:#556;font-size:14px;flex-direction:column;gap:8px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2f3542;padding:10px 24px;border-radius:20px;font-size:13px;opacity:0;transition:.3s;pointer-events:none}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <b>🚀 Paste2App Web</b><span>GitHub Pages対応・ブラウザ保存版</span>
+  <div style="margin-left:auto;display:flex;gap:8px">
+    <button class="btn" onclick="exportJSON()">📤 バックアップ</button>
+    <button class="btn" onclick="document.getElementById('impfile').click()">📥 復元</button>
+    <button class="btn" onclick="downloadZip()">🗜️ ZIP</button>
+    <input type="file" id="impfile" accept=".json" hidden onchange="importJSON(this)">
+  </div>
+</header>
+<div id="layout">
+  <div id="side">
+    <h3>📁 保存済みプロジェクト</h3>
+    <div id="plist"></div>
+    <div id="storage"></div>
+  </div>
+  <div id="main">
+    <div id="tabs">
+      <button class="tab on" data-p="pastePane">📋 貼り付け</button>
+      <button class="tab" data-p="prevPane">👁️ プレビュー</button>
+      <button class="tab" data-p="filePane">📄 ファイル</button>
+    </div>
+    <div class="pane on" id="pastePane">
+      <textarea id="ta" placeholder="AIの回答(MANIFEST+FILE書式)を丸ごと貼り付け → 下のボタン"></textarea>
+      <button class="btn blue" style="padding:12px" onclick="doImport()">🚀 展開して保存</button>
+    </div>
+    <div class="pane" id="prevPane"><div id="empty">👈 プロジェクトを選ぶか、貼り付けタブから展開してください</div><iframe id="ifr" style="display:none"></iframe></div>
+    <div class="pane" id="filePane"><div id="flist"></div><div id="fbody">← ファイルを選択</div></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const LS='p2a_projects';
+let current=null;
+
+/* ========== 保存層(localStorage) ========== */
+const loadAll=()=>JSON.parse(localStorage.getItem(LS)||'{}');
+const saveAll=o=>localStorage.setItem(LS,JSON.stringify(o));
+
+/* ========== パーサー(契約書式) ========== */
+function parse(text){
+  const mm=text.match(/####\s*MANIFEST\s*```\w*\n([\s\S]*?)```/);
+  if(!mm)throw'MANIFESTが見つかりません(契約書プロンプトを先に貼りました?)';
+  const man={FILES:[]};
+  mm[1].split('\n').forEach(l=>{
+    l=l.trim();
+    if(l.startsWith('- '))man.FILES.push(l.slice(2).trim());
+    else if(l.includes(':')){const[k,...v]=l.split(':');man[k.trim().toUpperCase()]=v.join(':').trim();}
+  });
+  const files={};
+  for(const m of text.matchAll(/####\s*FILE:\s*([\w\-./]+)\s*\n```[\w+-]*\n([\s\S]*?)```/g))
+    files[m[1].trim()]=m[2];
+  const missing=man.FILES.filter(f=>!files[f]);
+  return{man,files,missing};
+}
+
+/* ========== 展開&保存 ========== */
+function doImport(){
+  try{
+    const{man,files,missing}=parse(document.getElementById('ta').value);
+    if(missing.length&&!confirm(`⚠️ 本体がないファイル: ${missing.join(', ')}\n(AIが省略した疑い)\nこのまま保存する?`))return;
+    const name=man.PROJECT||'unnamed';
+    const all=loadAll();
+    all[name]={man,files,saved:new Date().toLocaleString()};
+    saveAll(all);
+    toast(`💾 「${name}」を保存しました(${Object.keys(files).length}ファイル)`);
+    renderList();open(name);
+  }catch(e){toast('😵 '+e);}
+}
+
+/* ========== プロジェクト一覧 ========== */
+function renderList(){
+  const all=loadAll(),pl=document.getElementById('plist');
+  pl.innerHTML='';
+  Object.keys(all).forEach(n=>{
+    const d=document.createElement('div');
+    d.className='pitem'+(n===current?' sel':'');
+    d.innerHTML=`<span>📦 ${n}</span><span class="del">🗑️</span>`;
+    d.querySelector('span').onclick=()=>open(n);
+    d.querySelector('.del').onclick=e=>{e.stopPropagation();
+      if(confirm(`「${n}」を削除する?`)){const a=loadAll();delete a[n];saveAll(a);
+        if(current===n)current=null;renderList();}};
+    d.onclick=()=>open(n);
+    pl.appendChild(d);
+  });
+  const used=(localStorage.getItem(LS)||'').length;
+  document.getElementById('storage').textContent=
+    `使用量: ${(used/1024).toFixed(1)}KB / 約5MB(ブラウザ上限)`;
+}
+
+/* ========== プレビュー構築(CSS/JSをインライン合成) ========== */
+function buildPreview(files){
+  let html=files['index.html']||files[Object.keys(files).find(k=>k.endsWith('.html'))];
+  if(!html)return'<h2 style="font-family:sans-serif">HTMLファイルがありません</h2>';
+  html=html.replace(/<link[^>]*href=["']([^"']+)["'][^>]*\/?>/g,
+    (m,href)=>files[href]!=null?`<style>\n${files[href]}\n</style>`:m);
+  html=html.replace(/<script([^>]*)src=["']([^"']+)["']([^>]*)>\s*<\/script>/g,
+    (m,a,src,b)=>files[src]!=null?`<script${a}${b}>\n${files[src]}\n<\/script>`:m);
+  return html;
+}
+
+function open(name){
+  const p=loadAll()[name];if(!p)return;
+  current=name;renderList();
+  // プレビュー
+  document.getElementById('empty').style.display='none';
+  const ifr=document.getElementById('ifr');
+  ifr.style.display='block';
+  ifr.srcdoc=buildPreview(p.files);
+  // ファイル一覧
+  const fl=document.getElementById('flist');fl.innerHTML='';
+  Object.keys(p.files).sort().forEach(f=>{
+    const d=document.createElement('div');d.textContent=f;
+    d.onclick=()=>{fl.querySelectorAll('div').forEach(x=>x.classList.remove('sel'));
+      d.classList.add('sel');
+      document.getElementById('fbody').textContent=p.files[f];};
+    fl.appendChild(d);
+  });
+  switchTab('prevPane');
+}
+
+/* ========== バックアップ/復元/ZIP ========== */
+function exportJSON(){
+  const blob=new Blob([localStorage.getItem(LS)||'{}'],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='paste2app_backup.json';a.click();
+  toast('📤 全プロジェクトをバックアップしました');
+}
+function importJSON(inp){
+  const r=new FileReader();
+  r.onload=()=>{try{
+    const data=JSON.parse(r.result);
+    const all={...loadAll(),...data};
+    saveAll(all);renderList();toast('📥 復元しました');
+  }catch{toast('😵 壊れたバックアップファイルです');}};
+  r.readAsText(inp.files[0]);
+}
+async function downloadZip(){
+  if(!current)return toast('😵 プロジェクトを選んでください');
+  const p=loadAll()[current],zip=new JSZip();
+  Object.entries(p.files).forEach(([path,code])=>zip.file(path,code));
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=current+'.zip';a.click();
+  toast('🗜️ ZIPでダウンロードしました');
+}
+
+/* ========== UI ========== */
+function switchTab(id){
+  document.querySelectorAll('.tab,.pane').forEach(e=>e.classList.remove('on'));
+  document.querySelector(`[data-p="${id}"]`).classList.add('on');
+  document.getElementById(id).classList.add('on');
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchTab(t.dataset.p));
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2600);
+}
+renderList();
+</script>
+</body>
+</html>
