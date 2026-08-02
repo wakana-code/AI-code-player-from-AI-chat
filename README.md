@@ -39,6 +39,7 @@ new
 PATCH rules:
 
 The old block must be an EXACT copy of code that actually exists. Do not change.
+- Code that YOU yourself output earlier in this conversation counts as "presented code". You may quote your own previous output in the old block
 The old block must be long enough to be uniquely identifiable within the file (include surrounding lines so it does not accidentally match other locations)
 One change = one PATCH block. For multiple changes, output multiple PATCH blocks
 When adding a new file, use the "#### FILE:" format with the full content, not a PATCH
