@@ -1,22 +1,26 @@
+
+# 🛠️ その2:index.html 完全版(v2・全文置き換え用)
+
+前のファイルは**全部消して**、これを丸ごと貼ってください。前回のバグ(FILES上書き事件)修正済み+PATCH機能搭載です。
+
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>🚀 Paste2App Web</title>
+<title>🚀 InstaForge v2</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 *{margin:0;box-sizing:border-box}
 body{font-family:'Segoe UI','Hiragino Sans',sans-serif;background:#14161c;color:#dde;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-header{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#1d212b;border-bottom:1px solid #2a2f3a}
+header{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#1d212b;border-bottom:1px solid #2a2f3a;flex-wrap:wrap}
 header b{color:#7fd4ff;font-size:16px}
 header span{font-size:11px;color:#667}
 .btn{padding:7px 14px;border:none;border-radius:8px;background:#2f3542;color:#cdd;cursor:pointer;font-size:13px}
 .btn:hover{background:#3a4150}
 .btn.blue{background:#3b82f6;color:#fff}
-.btn.red{background:#5e2f35}
 #layout{flex:1;display:flex;overflow:hidden}
-/* サイドバー */
 #side{width:230px;background:#181b22;border-right:1px solid #2a2f3a;display:flex;flex-direction:column}
 #side h3{font-size:12px;color:#889;padding:12px 14px 6px}
 #plist{flex:1;overflow-y:auto}
@@ -26,20 +30,16 @@ header span{font-size:11px;color:#667}
 .pitem .del{opacity:.4;cursor:pointer}
 .pitem .del:hover{opacity:1;color:#ff7b7b}
 #storage{font-size:10px;color:#556;padding:8px 14px;border-top:1px solid #2a2f3a}
-/* メイン */
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 #tabs{display:flex;gap:4px;padding:8px 12px 0;background:#1a1e26}
 .tab{padding:8px 20px;border:none;border-radius:8px 8px 0 0;background:#20242e;color:#99a;cursor:pointer;font-size:13px}
 .tab.on{background:#2f3542;color:#fff;font-weight:bold}
 .pane{flex:1;display:none;overflow:hidden}
 .pane.on{display:flex}
-/* 貼り付け */
 #pastePane{flex-direction:column;padding:16px;gap:10px}
+#modeInfo{font-size:12px;color:#8fa;background:#1c2530;border:1px solid #2a3a2f;border-radius:8px;padding:8px 12px}
 textarea{flex:1;background:#0d0f13;color:#cde;border:1px solid #333;border-radius:10px;padding:14px;font-family:Consolas,monospace;font-size:13px;resize:none;outline:none}
-/* プレビュー */
 iframe{width:100%;height:100%;border:none;background:#fff}
-/* ファイル */
-#filePane{display:none}
 #filePane.on{display:flex}
 #flist{width:230px;border-right:1px solid #2a2f3a;overflow-y:auto;background:#181b22}
 #flist div{padding:9px 14px;cursor:pointer;font-size:12px;font-family:Consolas,monospace}
@@ -47,13 +47,23 @@ iframe{width:100%;height:100%;border:none;background:#fff}
 #flist div.sel{background:#252b38;color:#7fd4ff}
 #fbody{flex:1;padding:14px;overflow:auto;font-family:Consolas,monospace;font-size:13px;color:#cdd;white-space:pre;background:#0d0f13}
 #empty{flex:1;display:flex;align-items:center;justify-content:center;color:#556;font-size:14px;flex-direction:column;gap:8px}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2f3542;padding:10px 24px;border-radius:20px;font-size:13px;opacity:0;transition:.3s;pointer-events:none}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2f3542;padding:10px 24px;border-radius:20px;font-size:13px;opacity:0;transition:.3s;pointer-events:none;max-width:80vw;z-index:99}
 #toast.show{opacity:1}
+/* 適用結果モーダル */
+#report{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50}
+#report.show{display:flex}
+#repBox{background:#1d212b;border-radius:14px;padding:22px;width:min(560px,92vw);max-height:80vh;overflow-y:auto}
+#repBox h2{font-size:16px;margin-bottom:12px;color:#7fd4ff}
+.rep{padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:6px;font-family:Consolas,monospace}
+.rep.ok{background:#1c2e22;color:#8fd8a0}
+.rep.warn{background:#2e2a1c;color:#d8c88f}
+.rep.ng{background:#2e1c1c;color:#d88f8f}
+.rep small{display:block;color:#889;font-family:'Segoe UI',sans-serif;margin-top:3px}
 </style>
 </head>
 <body>
 <header>
-  <b>🚀 Paste2App Web</b><span>GitHub Pages対応・ブラウザ保存版</span>
+  <b>🚀 InstaForge v2</b><span>新規展開 + パッチ自動適用</span>
   <div style="margin-left:auto;display:flex;gap:8px">
     <button class="btn" onclick="exportJSON()">📤 バックアップ</button>
     <button class="btn" onclick="document.getElementById('impfile').click()">📥 復元</button>
@@ -74,52 +84,151 @@ iframe{width:100%;height:100%;border:none;background:#fff}
       <button class="tab" data-p="filePane">📄 ファイル</button>
     </div>
     <div class="pane on" id="pastePane">
-      <textarea id="ta" placeholder="AIの回答(MANIFEST+FILE書式)を丸ごと貼り付け → 下のボタン"></textarea>
-      <button class="btn blue" style="padding:12px" onclick="doImport()">🚀 展開して保存</button>
+      <div id="modeInfo">💡 MANIFEST入り → 新規保存 / PATCH・FILE入り(MANIFESTなし) → 選択中プロジェクトに自動適用。説明文が混ざっていてもOK(無視されます)</div>
+      <textarea id="ta" placeholder="AIの回答を丸ごと貼り付け(説明文ごとでOK)→ 下のボタン"></textarea>
+      <button class="btn blue" style="padding:12px" onclick="doImport()">🚀 取り込む(自動判別)</button>
     </div>
     <div class="pane" id="prevPane"><div id="empty">👈 プロジェクトを選ぶか、貼り付けタブから展開してください</div><iframe id="ifr" style="display:none"></iframe></div>
     <div class="pane" id="filePane"><div id="flist"></div><div id="fbody">← ファイルを選択</div></div>
   </div>
 </div>
 <div id="toast"></div>
+<div id="report"><div id="repBox"><h2>📋 適用結果</h2><div id="repList"></div>
+<button class="btn blue" style="width:100%;margin-top:10px" onclick="document.getElementById('report').classList.remove('show')">閉じる</button></div></div>
 
 <script>
 const LS='p2a_projects';
 let current=null;
 
-/* ========== 保存層(localStorage) ========== */
+/* ========== 保存層 ========== */
 const loadAll=()=>JSON.parse(localStorage.getItem(LS)||'{}');
 const saveAll=o=>localStorage.setItem(LS,JSON.stringify(o));
 
-/* ========== パーサー(契約書式) ========== */
-function parse(text){
+/* ========== パーサー ========== */
+function parseManifest(text){
   const mm=text.match(/####\s*MANIFEST\s*```\w*\n([\s\S]*?)```/);
-  if(!mm)throw'MANIFESTが見つかりません(契約書プロンプトを先に貼りました?)';
+  if(!mm)return null;
   const man={FILES:[]};
   mm[1].split('\n').forEach(l=>{
     l=l.trim();
-    if(l.startsWith('- '))man.FILES.push(l.slice(2).trim());
-    else if(l.includes(':')){const[k,...v]=l.split(':');man[k.trim().toUpperCase()]=v.join(':').trim();}
+    if(l.startsWith('- ')){
+      man.FILES.push(l.slice(2).trim());
+    }else if(l.includes(':')){
+      let[k,...v]=l.split(':');
+      k=k.trim().toUpperCase();
+      if(k!=='FILES'&&k!=='FILE')man[k]=v.join(':').trim(); // ★FILES見出し行で配列を潰さない(前回のバグ修正)
+    }
   });
+  return man;
+}
+function parseFiles(text){
   const files={};
   for(const m of text.matchAll(/####\s*FILE:\s*([\w\-./]+)\s*\n```[\w+-]*\n([\s\S]*?)```/g))
     files[m[1].trim()]=m[2];
-  const missing=man.FILES.filter(f=>!files[f]);
-  return{man,files,missing};
+  return files;
+}
+function parsePatches(text){
+  const patches=[];
+  for(const m of text.matchAll(/####\s*PATCH:\s*([\w\-./]+)\s*\n```old\s*\n([\s\S]*?)```\s*\n+```new\s*\n([\s\S]*?)```/g))
+    patches.push({path:m[1].trim(),old:m[2],neu:m[3]});
+  return patches;
 }
 
-/* ========== 展開&保存 ========== */
+/* ========== パッチ適用エンジン ========== */
+function normalize(s){
+  // 改行コード統一+各行の行末空白を除去(コピペ劣化に耐える)
+  return s.replace(/\r\n?/g,'\n').split('\n').map(l=>l.replace(/\s+$/,'')).join('\n');
+}
+function applyPatch(fileText,patch){
+  // 1) 完全一致
+  let idx=fileText.indexOf(patch.old);
+  if(idx>=0){
+    const count=fileText.split(patch.old).length-1;
+    return{text:fileText.replace(patch.old,patch.neu),
+           warn:count>1?`一致箇所が${count}個あり、最初の1個だけ置換しました`:null};
+  }
+  // 2) 正規化一致(行末空白・改行コードの違いを無視)
+  const nf=normalize(fileText),no=normalize(patch.old);
+  idx=nf.indexOf(no);
+  if(idx>=0){
+    const count=nf.split(no).length-1;
+    return{text:nf.replace(no,normalize(patch.neu)),
+           warn:'空白の違いを吸収して適用しました'+(count>1?`(一致${count}個中、最初の1個を置換)`:'')};
+  }
+  // 3) 敗北
+  return{text:null};
+}
+
+/* ========== メイン:自動判別取り込み ========== */
 function doImport(){
-  try{
-    const{man,files,missing}=parse(document.getElementById('ta').value);
+  const text=document.getElementById('ta').value;
+  if(!text.trim())return toast('😵 何も貼られていません');
+  const man=parseManifest(text);
+  const files=parseFiles(text);
+  const patches=parsePatches(text);
+
+  if(man){ // ===== 新規プロジェクト =====
+    const missing=man.FILES.filter(f=>!(f in files));
     if(missing.length&&!confirm(`⚠️ 本体がないファイル: ${missing.join(', ')}\n(AIが省略した疑い)\nこのまま保存する?`))return;
     const name=man.PROJECT||'unnamed';
     const all=loadAll();
     all[name]={man,files,saved:new Date().toLocaleString()};
     saveAll(all);
-    toast(`💾 「${name}」を保存しました(${Object.keys(files).length}ファイル)`);
+    toast(`💾 「${name}」を新規保存(${Object.keys(files).length}ファイル)`);
     renderList();open(name);
-  }catch(e){toast('😵 '+e);}
+    document.getElementById('ta').value='';
+    return;
+  }
+
+  if(patches.length||Object.keys(files).length){ // ===== 修正モード =====
+    if(!current)return toast('😵 修正先のプロジェクトを左の一覧から選んでください');
+    const all=loadAll(),proj=all[current];
+    const report=[];
+    // FILE:ブロック → 丸ごと置換 or 新規追加
+    Object.entries(files).forEach(([p,c])=>{
+      const existed=p in proj.files;
+      proj.files[p]=c;
+      report.push({cls:'ok',head:`📄 ${p}`,msg:existed?'ファイル全体を置き換えました':'新規ファイルとして追加しました'});
+    });
+    // PATCH → 検索置換
+    patches.forEach((pt,i)=>{
+      if(!(pt.path in proj.files)){
+        report.push({cls:'ng',head:`🩹 ${pt.path} (PATCH ${i+1})`,msg:'対象ファイルが存在しません。パスが間違っている?'});
+        return;
+      }
+      const r=applyPatch(proj.files[pt.path],pt);
+      if(r.text===null){
+        report.push({cls:'ng',head:`🩹 ${pt.path} (PATCH ${i+1})`,
+          msg:'変更前コードが見つかりません。AIが原文と違うコードを書いた疑い。「oldブロックは現行コードを一字一句コピーして出し直して」と追撃してください'});
+      }else{
+        proj.files[pt.path]=r.text;
+        report.push({cls:r.warn?'warn':'ok',head:`🩹 ${pt.path} (PATCH ${i+1})`,msg:r.warn||'適用しました'});
+      }
+    });
+    proj.saved=new Date().toLocaleString();
+    saveAll(all);
+    open(current);
+    showReport(report);
+    const ng=report.filter(r=>r.cls==='ng').length;
+    toast(ng?`⚠️ 適用完了(失敗${ng}件あり)`:'✅ 全パッチ適用成功');
+    if(!ng)document.getElementById('ta').value='';
+    return;
+  }
+
+  toast('😵 MANIFESTもPATCHもFILEも見つかりません(契約書プロンプトをAIに渡しました?)');
+}
+
+/* ========== 適用結果モーダル ========== */
+function showReport(list){
+  const el=document.getElementById('repList');
+  el.innerHTML='';
+  list.forEach(r=>{
+    const d=document.createElement('div');
+    d.className='rep '+r.cls;
+    d.innerHTML=`${r.head}<small>${r.msg}</small>`;
+    el.appendChild(d);
+  });
+  document.getElementById('report').classList.add('show');
 }
 
 /* ========== プロジェクト一覧 ========== */
@@ -130,7 +239,6 @@ function renderList(){
     const d=document.createElement('div');
     d.className='pitem'+(n===current?' sel':'');
     d.innerHTML=`<span>📦 ${n}</span><span class="del">🗑️</span>`;
-    d.querySelector('span').onclick=()=>open(n);
     d.querySelector('.del').onclick=e=>{e.stopPropagation();
       if(confirm(`「${n}」を削除する?`)){const a=loadAll();delete a[n];saveAll(a);
         if(current===n)current=null;renderList();}};
@@ -142,7 +250,7 @@ function renderList(){
     `使用量: ${(used/1024).toFixed(1)}KB / 約5MB(ブラウザ上限)`;
 }
 
-/* ========== プレビュー構築(CSS/JSをインライン合成) ========== */
+/* ========== プレビュー ========== */
 function buildPreview(files){
   let html=files['index.html']||files[Object.keys(files).find(k=>k.endsWith('.html'))];
   if(!html)return'<h2 style="font-family:sans-serif">HTMLファイルがありません</h2>';
@@ -152,16 +260,13 @@ function buildPreview(files){
     (m,a,src,b)=>files[src]!=null?`<script${a}${b}>\n${files[src]}\n<\/script>`:m);
   return html;
 }
-
 function open(name){
   const p=loadAll()[name];if(!p)return;
   current=name;renderList();
-  // プレビュー
   document.getElementById('empty').style.display='none';
   const ifr=document.getElementById('ifr');
   ifr.style.display='block';
   ifr.srcdoc=buildPreview(p.files);
-  // ファイル一覧
   const fl=document.getElementById('flist');fl.innerHTML='';
   Object.keys(p.files).sort().forEach(f=>{
     const d=document.createElement('div');d.textContent=f;
@@ -170,22 +275,20 @@ function open(name){
       document.getElementById('fbody').textContent=p.files[f];};
     fl.appendChild(d);
   });
-  switchTab('prevPane');
 }
 
 /* ========== バックアップ/復元/ZIP ========== */
 function exportJSON(){
   const blob=new Blob([localStorage.getItem(LS)||'{}'],{type:'application/json'});
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download='paste2app_backup.json';a.click();
+  a.href=URL.createObjectURL(blob);a.download='instaforge_backup.json';a.click();
   toast('📤 全プロジェクトをバックアップしました');
 }
 function importJSON(inp){
   const r=new FileReader();
   r.onload=()=>{try{
     const data=JSON.parse(r.result);
-    const all={...loadAll(),...data};
-    saveAll(all);renderList();toast('📥 復元しました');
+    saveAll({...loadAll(),...data});renderList();toast('📥 復元しました');
   }catch{toast('😵 壊れたバックアップファイルです');}};
   r.readAsText(inp.files[0]);
 }
@@ -200,16 +303,13 @@ async function downloadZip(){
 }
 
 /* ========== UI ========== */
-function switchTab(id){
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab,.pane').forEach(e=>e.classList.remove('on'));
-  document.querySelector(`[data-p="${id}"]`).classList.add('on');
-  document.getElementById(id).classList.add('on');
-}
-document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchTab(t.dataset.p));
+  t.classList.add('on');document.getElementById(t.dataset.p).classList.add('on');});
 function toast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2600);
+  setTimeout(()=>t.classList.remove('show'),3200);
 }
 renderList();
 </script>
