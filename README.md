@@ -38,7 +38,7 @@ new
 (the code AFTER the change)
 PATCH rules:
 
-The old block must be an EXACT copy of code that actually exists. Do not write it from memory; copy it precisely from the most recently presented code
+The old block must be an EXACT copy of code that actually exists. Do not change.
 The old block must be long enough to be uniquely identifiable within the file (include surrounding lines so it does not accidentally match other locations)
 One change = one PATCH block. For multiple changes, output multiple PATCH blocks
 When adding a new file, use the "#### FILE:" format with the full content, not a PATCH
