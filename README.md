@@ -47,6 +47,10 @@ When rewriting an entire file, you may also use the "#### FILE:" format (the who
 
 Relative paths only. Never start a path with / or ../
 The entry point of a static site must always be index.html
+[C. Adding / Removing Code and Deleting Files]
+- To ADD code to an existing file, also use the PATCH format: include the existing code around the insertion point in the old block, and write "the same code + the new lines" in the new block
+- To REMOVE code, also use the PATCH format: put the range containing the lines to delete in the old block, and write the remaining code without those lines in the new block (if nothing remains, the new block may be empty)
+- To add a NEW file, use the "#### FILE:" format with the full content
 
 ```
 
